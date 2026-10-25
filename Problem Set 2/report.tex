@@ -1,0 +1,449 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{fontspec}
+\usepackage[english, bidi=basic, provide=*]{babel}
+\babelprovide[import, onchar=ids fonts]{english}
+\babelfont{rm}{Noto Sans}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{float}
+\IfFileExists{results.tex}{\input{results.tex}}{}
+\newcommand{\myfig}[2]{\IfFileExists{#1}{\includegraphics[width=#2]{#1}}{\fbox{\parbox{0.8\linewidth}{\centering Figure \texttt{\detokenize{#1}} missing: run \texttt{solutions.py}}}}}
+\newcommand{\todores}{\ensuremath{\mathbf{?}}}
+\providecommand{\resSixRows}{\multicolumn{4}{c}{run \texttt{solutions.py}} \\}
+\providecommand{\resSevenRows}{\multicolumn{6}{c}{run \texttt{solutions.py}} \\}
+\providecommand{\resLeakRows}{\multicolumn{2}{c}{run \texttt{solutions.py}} \\}
+\providecommand{\resSevenM}{\todores}
+\providecommand{\resSevenN}{\todores}
+\providecommand{\resSevenSNRin}{\todores}
+\providecommand{\resSixBPM}{\todores}
+\providecommand{\resSixDf}{\todores}
+\providecommand{\resSixDur}{\todores}
+\providecommand{\resSixFs}{\todores}
+\providecommand{\resSixHopMs}{\todores}
+\providecommand{\resSixIOI}{\todores}
+\providecommand{\resSixNons}{\todores}
+\providecommand{\resSixWinMs}{\todores}
+\providecommand{\resWienerGain}{\todores}
+\providecommand{\resWienerL}{\todores}
+\providecommand{\resWienerLmin}{\todores}
+\providecommand{\resWienerLtestMSE}{\todores}
+\providecommand{\resWienerMinMSE}{\todores}
+\providecommand{\resWienerSNRin}{\todores}
+\providecommand{\resWienerSNRout}{\todores}
+
+\definecolor{primary}{RGB}{0, 84, 159}
+\definecolor{secondary}{RGB}{70, 70, 70}
+
+\begin{document}
+
+\begin{center}
+    {\LARGE \textbf{\textcolor{primary}{02471 Machine Learning for Signal Processing}}}\\[0.5cm]
+    {\Large \textbf{Exercise Solutions}}\\[0.5cm]
+    {\color{secondary} \rule{\textwidth}{0.5pt}}
+\end{center}
+
+\vspace{0.5cm}
+
+\section*{Problem 2.1}
+Consider the case where you have a discrete time signal, $x_n$ of length $N$, where $n$ is the time index, and a linear FIR filter of length $L$, with the coefficients, $\theta_l$. 
+
+Ordinarily, the output would be calculated as a convolution between the input signal and filter weights, but it can also be described as a matrix product, $y = X\theta$. Describe exactly how you would construct $X$ and $\theta$ in order to compute $y$.
+
+\vspace{0.5cm}
+
+\textbf{Solution:}
+
+The standard filtering operation using a Finite Impulse Response (FIR) filter is defined by the discrete convolution sum. The output $y_n$ at time step $n$ is computed as:
+\begin{equation}
+    y_n = \sum_{l=0}^{L-1} \theta_l x_{n-l}
+\end{equation}
+where $\theta_l$ are the filter coefficients for $l = 0, 1, \dots, L-1$.
+
+To express this operation as a matrix-vector product $y = X\theta$, we structure the filter coefficients as a column vector and the input signal as a matrix where each row represents the time-delayed samples of the input signal interacting with the filter.
+
+\subsection*{1. Constructing the Parameter Vector $\theta$}
+The filter coefficients are arranged into an $L \times 1$ column vector $\theta$:
+\begin{equation}
+    \theta = 
+    \begin{bmatrix}
+        \theta_0 \\
+        \theta_1 \\
+        \vdots \\
+        \theta_{L-1}
+    \end{bmatrix}
+\end{equation}
+
+\subsection*{2. Constructing the Input Matrix $X$}
+To satisfy the convolution sum, each row of the matrix $X$ must contain the current and past values of the signal $x_n$, shifted by one time step per column. This forms a \textbf{Toeplitz matrix}. 
+
+Assuming we compute the "valid" convolution (where we only compute outputs for time indices where the filter fully overlaps with the available data, i.e., $n \in [L-1, N-1]$), $X$ is constructed as an $(N - L + 1) \times L$ matrix:
+\begin{equation}
+    X = 
+    \begin{bmatrix}
+        x_{L-1} & x_{L-2} & \dots  & x_0 \\
+        x_{L}   & x_{L-1} & \dots  & x_1 \\
+        x_{L+1} & x_{L}   & \dots  & x_2 \\
+        \vdots  & \vdots  & \ddots & \vdots \\
+        x_{N-1} & x_{N-2} & \dots  & x_{N-L}
+    \end{bmatrix}
+\end{equation}
+
+If we assume a "full" convolution (where we assume zero-padding for $x_n$ outside the range $0 \le n < N$), the matrix $X$ would simply be expanded with zeros at the boundaries, resulting in an $(N + L - 1) \times L$ matrix:
+\begin{equation}
+    X_{full} = 
+    \begin{bmatrix}
+        x_0    & 0       & \dots  & 0 \\
+        x_1    & x_0     & \dots  & 0 \\
+        \vdots & \vdots  & \ddots & \vdots \\
+        x_{N-1}& x_{N-2} & \dots  & x_{N-L} \\
+        0      & x_{N-1} & \dots  & x_{N-L+1} \\
+        \vdots & \vdots  & \ddots & \vdots \\
+        0      & 0       & \dots  & x_{N-1}
+    \end{bmatrix}
+\end{equation}
+
+\subsection*{3. Computing the Output $y$}
+With $X$ and $\theta$ defined, the filtering operation is executed via a simple matrix multiplication, yielding the output column vector $y$:
+\begin{equation}
+    y = X\theta = 
+    \begin{bmatrix}
+        y_{L-1} \\
+        y_{L} \\
+        \vdots \\
+        y_{N-1}
+    \end{bmatrix}
+\end{equation}
+Each element of $y$ corresponds exactly to the dot product of a row in $X$ and the vector $\theta$, thus flawlessly replicating the convolution sum.
+
+\vspace{0.8cm}
+
+\section*{Problem 2.2}
+Consider the estimation task of a parameter to a model, $\hat{\theta}=f(y,X)$, where $y$ is the output vector, $X$ is our input matrix, $\theta_{o}$ is the true parameter and $\hat{\theta}$ denotes the random variable of the associated estimator. 
+
+First show that the mean-square error, $\text{MSE} = \mathbb{E}[(\hat{\theta}-\theta_{o})^{2}]$ can be decomposed into the bias and the variance. 
+
+Next, argue whether a biased or unbiased estimator is best suited for minimizing the MSE. Include formulas as you see necessary to support your analysis.
+
+\vspace{0.5cm}
+
+\textbf{Solution:}
+
+\subsection*{1. Bias-Variance Decomposition of MSE}
+We begin with the definition of the Mean Squared Error (MSE) and add/subtract the expected value of the estimator, $\mathbb{E}[\hat{\theta}]$, inside the square:
+\begin{align}
+    \text{MSE} &= \mathbb{E}\left[(\hat{\theta} - \theta_o)^2\right] \nonumber \\
+    &= \mathbb{E}\left[(\hat{\theta} - \mathbb{E}[\hat{\theta}] + \mathbb{E}[\hat{\theta}] - \theta_o)^2\right]
+\end{align}
+Expanding the square yields three terms:
+\begin{equation}
+    \text{MSE} = \mathbb{E}\left[(\hat{\theta} - \mathbb{E}[\hat{\theta}])^2\right] + \mathbb{E}\left[(\mathbb{E}[\hat{\theta}] - \theta_o)^2\right] + 2\mathbb{E}\left[(\hat{\theta} - \mathbb{E}[\hat{\theta}])(\mathbb{E}[\hat{\theta}] - \theta_o)\right]
+\end{equation}
+Let's analyze each term individually:
+\begin{itemize}
+    \item \textbf{Variance}: The first term is the standard definition of the estimator's variance: $\text{Var}(\hat{\theta}) = \mathbb{E}\left[(\hat{\theta} - \mathbb{E}[\hat{\theta}])^2\right]$.
+    \item \textbf{Bias Squared}: The second term consists of non-random constants (since the expectation over $\hat{\theta}$ is already evaluated). Thus, $\mathbb{E}\left[(\mathbb{E}[\hat{\theta}] - \theta_o)^2\right] = (\mathbb{E}[\hat{\theta}] - \theta_o)^2 = \text{Bias}(\hat{\theta})^2$.
+    \item \textbf{Cross-term}: The term $(\mathbb{E}[\hat{\theta}] - \theta_o)$ is a constant with respect to the outer expectation and can be pulled out: $2(\mathbb{E}[\hat{\theta}] - \theta_o) \cdot \mathbb{E}[\hat{\theta} - \mathbb{E}[\hat{\theta}]]$. Because $\mathbb{E}[\hat{\theta} - \mathbb{E}[\hat{\theta}]] = \mathbb{E}[\hat{\theta}] - \mathbb{E}[\hat{\theta}] = 0$, the entire cross-term evaluates to zero.
+\end{itemize}
+Summing these parts, we arrive at the standard decomposition:
+\begin{equation}
+    \text{MSE} = \text{Var}(\hat{\theta}) + \text{Bias}(\hat{\theta})^2
+\end{equation}
+
+\subsection*{2. Minimizing the MSE (Biased vs. Unbiased)}
+An \textbf{unbiased estimator} inherently satisfies $\text{Bias}(\hat{\theta}) = 0$, reducing its MSE entirely to the estimator's variance: $\text{MSE}_{unbiased} = \text{Var}(\hat{\theta})$.
+
+While zero bias intuitively seems ideal, a \textbf{biased estimator} is often better suited for minimizing the overall MSE. In many models (such as Ridge Regression or shrinkage estimators), introducing a small, controlled amount of bias acts as a regularization mechanism. This restricts the model's sensitivity to noisy data, which can drastically reduce its variance. 
+
+If the reduction in variance exceeds the penalty of the squared bias introduced, the overall MSE will decrease:
+\begin{equation}
+    \text{Var}_{biased}(\hat{\theta}) + \text{Bias}_{biased}(\hat{\theta})^2 < \text{Var}_{unbiased}(\hat{\theta})
+\end{equation}
+Because the MSE is a sum of strictly non-negative terms, allowing a non-zero bias allows us to exploit this \textit{bias-variance tradeoff} to achieve a lower total error than would be mathematically possible if we strictly enforced $\text{Bias}(\hat{\theta}) = 0$.
+
+\vspace{0.8cm}
+
+\section*{Problem 2.3}
+Show that any function that is a norm is a convex function.
+
+\vspace{0.5cm}
+
+\textbf{Solution:}
+
+A function $f$ defined on a convex set $\mathcal{C}$ is convex if, for all $\theta_1,\theta_2\in\mathcal{C}$ and all $\lambda\in[0,1]$,
+\begin{equation}
+    f\big(\lambda\theta_1+(1-\lambda)\theta_2\big)\le \lambda f(\theta_1)+(1-\lambda)f(\theta_2).
+\end{equation}
+The domain $\mathbb{R}^l$ of a norm is a convex set. Let $\|\cdot\|_p$ satisfy the three norm properties and take $\theta_1,\theta_2\in\mathbb{R}^l$ and $\lambda\in[0,1]$. Then
+\begin{align}
+    \|\lambda\theta_1+(1-\lambda)\theta_2\|_p
+    &\le \|\lambda\theta_1\|_p+\|(1-\lambda)\theta_2\|_p && \text{(property 3, triangle inequality)}\nonumber\\
+    &= |\lambda|\,\|\theta_1\|_p+|1-\lambda|\,\|\theta_2\|_p && \text{(property 2, homogeneity)}\nonumber\\
+    &= \lambda\|\theta_1\|_p+(1-\lambda)\|\theta_2\|_p && \text{(since } \lambda,\,1-\lambda\ge 0\text{)}.\nonumber
+\end{align}
+This is exactly the definition of convexity, so every norm is convex. Property 1 is not needed for this argument. \hfill $\blacksquare$
+
+\vspace{0.8cm}
+
+\section*{Problem 2.4}
+The signal $\mathrm{x}_n=a\mathrm{x}_{n-1}+\mathrm{v}_n$ is an AR(1) process with $|a|<1$ and white noise $\mathrm{v}_n$ of variance $\sigma_v^2$. The signal $\mathrm{y}_n=\mathrm{x}_n+b$ is created with $\mathbb{E}[\mathrm{x}_n]=0$. Determine $r_y(k)$ and compute $r_y(-2)$ for $a=0.8$, $b=0.5$, $\sigma_v^2=1$.
+
+\vspace{0.5cm}
+
+\textbf{Solution:}
+
+\subsection*{1. Autocorrelation of the AR(1) process}
+Since $|a|<1$ the process is wide-sense stationary. The noise $\mathrm{v}_n$ is white and $\mathrm{x}_{n-k}$ depends only on $\mathrm{v}_m$ with $m\le n-k$. Hence $\mathbb{E}[\mathrm{v}_n\mathrm{x}_{n-k}]=0$ for $k\ge1$, and $\mathbb{E}[\mathrm{v}_n\mathrm{x}_n]=\sigma_v^2$.
+
+For $k=0$:
+\begin{equation}
+    r_x(0)=\mathbb{E}[\mathrm{x}_n(a\mathrm{x}_{n-1}+\mathrm{v}_n)]=a\,r_x(1)+\sigma_v^2 .
+\end{equation}
+For $k\ge1$:
+\begin{equation}
+    r_x(k)=\mathbb{E}[(a\mathrm{x}_{n-1}+\mathrm{v}_n)\mathrm{x}_{n-k}]=a\,r_x(k-1)\quad\Rightarrow\quad r_x(k)=a^{k}r_x(0).
+\end{equation}
+Inserting $r_x(1)=a\,r_x(0)$ in the first equation gives $r_x(0)=a^2r_x(0)+\sigma_v^2$, i.e.
+\begin{equation}
+    r_x(0)=\frac{\sigma_v^2}{1-a^2}.
+\end{equation}
+Because $r_x(-k)=r_x(k)$, we obtain for all $k$
+\begin{equation}
+    r_x(k)=\frac{\sigma_v^2}{1-a^2}\,a^{|k|}.
+\end{equation}
+
+\subsection*{2. Autocorrelation of $\mathrm{y}_n=\mathrm{x}_n+b$}
+Using $\mathbb{E}[\mathrm{x}_n]=0$,
+\begin{align}
+    r_y(k)&=\mathbb{E}[(\mathrm{x}_n+b)(\mathrm{x}_{n-k}+b)]
+    =r_x(k)+b\,\mathbb{E}[\mathrm{x}_n]+b\,\mathbb{E}[\mathrm{x}_{n-k}]+b^2\nonumber\\
+    &=\frac{\sigma_v^2}{1-a^2}\,a^{|k|}+b^2 .
+\end{align}
+The offset adds the constant $b^2$ (the squared mean) at every lag.
+
+\subsection*{3. Numerical value}
+For $a=0.8$, $b=0.5$, $\sigma_v^2=1$:
+\begin{equation}
+    r_y(-2)=\frac{1}{1-0.64}\,0.8^{2}+0.25=\frac{0.64}{0.36}+0.25=\frac{16}{9}+\frac14=\frac{73}{36}\approx 2.03 .
+\end{equation}
+
+\vspace{0.8cm}
+
+% ---------------------------------------------------------------------------
+% Setup for the data-driven problems
+% ---------------------------------------------------------------------------
+\section*{Problem 2.5}
+Explain the desired and error signal of a filter setup. Estimate a Wiener filter that removes the noise $w_n$ from $x_n=s_n+w_n$ ($f_s=8$ kHz), argue for the filter length, plot the frequency responses of the signals and the filter and evaluate the result.
+
+\vspace{0.5cm}
+
+\textbf{Solution:}
+
+\subsection*{1. Desired and error signal}
+In a filter setup the filter (coefficients $\theta$) acts on the input $x_n$ and produces the output $\hat d_n=\sum_{l=0}^{L-1}\theta_l x_{n-l}=\theta^\top \boldsymbol{x}_n$. The \textbf{desired signal} $d_n$ is the signal we would like the output to reproduce, and the \textbf{error signal} is the difference
+\begin{equation}
+    e_n=d_n-\hat d_n=d_n-\theta^\top\boldsymbol{x}_n .
+\end{equation}
+The filter is chosen to minimize $\mathbb{E}[e_n^2]$. In this problem the input is $x_n=s_n+w_n$, the desired signal is the clean signal $d_n=s_n$, and the error is $e_n=s_n-\hat s_n$, which is the remaining noise plus the distortion of the signal.
+
+\subsection*{2. Wiener solution}
+Setting the gradient of $J(\theta)=\mathbb{E}[(d_n-\theta^\top\boldsymbol{x}_n)^2]$ to zero gives the normal equations
+\begin{equation}
+    \Sigma_x\,\theta_*=p,\qquad [\Sigma_x]_{ij}=r_x(i-j),\qquad p_k=\mathbb{E}[d_n x_{n-k}]=r_{dx}(k).
+\end{equation}
+Since $s_n$ and $w_n$ are uncorrelated, $\Sigma_x=\Sigma_s+\Sigma_w$ and $p_k=r_s(k)$. In the frequency domain, for $L\to\infty$ (non-causal), the solution is
+\begin{equation}
+    H(f)=\frac{S_s(f)}{S_s(f)+S_w(f)},
+\end{equation}
+which passes frequencies where the signal dominates and attenuates those where the noise dominates. In practice $r_x(k)$ and $r_{dx}(k)$ are replaced by the (biased) sample estimates $\hat r(k)=\frac1N\sum_n x_n x_{n-k}$, and the Toeplitz system is solved (\texttt{solve\_toeplitz}). Since $s_n$ and $w_n$ are both available, $d_n=s_n$ can be used directly to estimate $p$.
+
+\subsection*{3. Choice of filter length}
+The filter must be long enough to resolve the spectral structure of $S_s/(S_s+S_w)$: a longer filter has a finer frequency resolution and approximates the ideal response better, so the MSE decreases with $L$. On the other hand, $\Sigma_x$ and $p$ are estimated from a finite number of samples, and the number of parameters grows with $L$ (larger variance, over-fitting; cf.\ Problem 2.2). I therefore estimated the filter on the first half of the data and measured the MSE on the second half, for $L$ between 1 and 512. I chose the smallest $L$ whose held-out MSE is within 2\,\% of the best one (Fig.~\ref{fig:p25mse}). This gives
+\begin{equation}
+    L=\resWienerL
+\end{equation}
+(held-out MSE $\resWienerLtestMSE$\,dB, versus $\resWienerMinMSE$\,dB for the best value $L=\resWienerLmin$). A short filter keeps the computation and estimation variance low at practically no loss in MSE.
+
+\begin{figure}[h]
+    \centering
+    \myfig{figs/p25_mse_vs_L.pdf}{0.55\textwidth}
+    \caption{MSE as a function of the filter length $L$, on the data used for the estimation and on held-out data.}
+    \label{fig:p25mse}
+\end{figure}
+
+\subsection*{4. Results and evaluation}
+Using all samples to estimate the filter with $L=\resWienerL$, the signal-to-noise ratio is improved from $\resWienerSNRin$\,dB at the input to $\resWienerSNRout$\,dB at the output, a gain of $\resWienerGain$\,dB. Fig.~\ref{fig:p25freq} shows the power spectral densities (Welch) of $s_n$, $w_n$, $x_n$ and $\hat s_n$ (left), and the frequency response of the Wiener filter together with the ideal non-causal response $S_s/(S_s+S_w)$ (right).
+
+\begin{figure}[h]
+    \centering
+    \myfig{figs/p25_freq.pdf}{\textwidth}
+    \caption{Left: spectra of the signal, noise, input and filter output. Right: frequency response of the FIR Wiener filter and the ideal response.}
+    \label{fig:p25freq}
+\end{figure}
+
+The filter should approximate the ideal response: a gain close to 0\,dB where the signal spectrum lies above the noise spectrum, and strong attenuation where the noise dominates (compare the two curves in the right panel). The remaining difference to the ideal response comes from the finite length and the finite data. Where signal and noise overlap in frequency, the filter cannot separate them, and it trades noise reduction against signal distortion; this is the origin of the remaining error (the output SNR is limited by the spectral overlap, not only by the filter length).
+
+\vspace{0.8cm}
+
+\section*{Problem 2.6}
+Conduct a time-frequency analysis of \texttt{problem2\_6.wav} by plotting the spectrogram, argue for the window choices, relate the time between the beats to the spectrogram, and identify the spectral signature of the different ``instruments''.
+
+\vspace{0.5cm}
+
+\textbf{Solution:}
+
+\subsection*{1. Choice of spectrogram parameters}
+The signal is sampled at $f_s=\resSixFs$\,Hz and lasts $\resSixDur$\,s. The short-time Fourier transform is subject to a time/frequency resolution trade-off: a window of $N_w$ samples gives a frequency resolution of about $f_s/N_w$ and a time resolution of about $N_w/f_s$.
+\begin{itemize}
+    \item \textbf{Window length} $N_w=1024$ (\resSixWinMs\,ms, $\Delta f=\resSixDf$\,Hz). The resolution of $\approx 20$\,Hz is fine enough to separate the low-frequency drum (tens to a few hundred Hz) from drums with energy at higher frequencies. The $\approx 46$\,ms window is short compared to the time between the beats (see below), so successive beats do not smear into each other, but long enough to give a good frequency resolution for the decaying drum sounds.
+    \item \textbf{Window function}: Hann. It has low side lobes, so the strong low-frequency components do not leak into (and mask) the weak high-frequency content, at the price of a slightly wider main lobe than the rectangular window.
+    \item \textbf{Overlap} 87.5\,\% (hop 128 samples = \resSixHopMs\,ms). With a Hann window, at least 50\,\% overlap is needed to avoid losing information at the window edges; the larger overlap gives a smooth time axis and a precise localization of the beats.
+\end{itemize}
+
+\subsection*{2. Beats and spectral signatures}
+The beats were found as peaks of the spectral flux (the sum over frequency of the positive increases in the log-magnitude of the spectrogram, bottom of Fig.~\ref{fig:p26spec}). \resSixNons{} beats are detected, and the median time between consecutive beats is $\resSixIOI$\,s, corresponding to a tempo of about $\resSixBPM$ beats per minute. The 87.5\,\% overlap gives a time resolution of \resSixHopMs\,ms in the localization of the beats. For each beat, the spectrum in the $\approx 46$\,ms after the onset was summarized as the energy in 12 logarithmically spaced bands, and the beats were grouped into three classes using $k$-means ($k=3$ was chosen from the three distinct spectral shapes that are visible by eye in the spectrogram and by listening). The classes are marked with colors in Fig.~\ref{fig:p26spec} and their mean spectra are shown in Fig.~\ref{fig:p26sig}.
+
+\begin{figure}[h]
+    \centering
+    \myfig{figs/p26_spectrogram.pdf}{\textwidth}
+    \caption{Spectrogram (Hann window, 1024 samples, 87.5\,\% overlap) with detected beats (triangles, colored by instrument class) and the spectral-flux onset function.}
+    \label{fig:p26spec}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \myfig{figs/p26_signatures.pdf}{0.55\textwidth}
+    \caption{Mean spectrum of the beats in each class.}
+    \label{fig:p26sig}
+\end{figure}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lccc}
+        \toprule
+        Class & Number of beats & Spectral centroid [Hz] & Peak frequency [Hz] \\
+        \midrule
+        \resSixRows
+        \bottomrule
+    \end{tabular}
+    \caption{Spectral signature of the instrument classes (sorted from low to high frequency content).}
+\end{table}
+
+The three ``instruments'' are distinguished by where their energy is located, as quantified by the spectral centroid and peak frequency in the table: the class with the lowest centroid corresponds to a bass-drum type sound, the middle class to a snare type sound, and the class with the highest centroid to a hi-hat type sound. Their repetition pattern is visible directly in the spectrogram as vertical structures that recur with the beat period.
+
+\vspace{0.8cm}
+
+\section*{Problem 2.7}
+Identify the signals in the noise-cancelling setup, describe the principle, explain why the source must be uncorrelated with the noise, and implement LMS, NLMS and RLS noise cancellers.
+
+\vspace{0.5cm}
+
+\textbf{Solution:}
+
+\subsection*{1. The signals in the setup}
+\begin{itemize}
+    \item \textbf{source signal}: the speech $s_n$ that we want to recover. It reaches only the primary microphone.
+    \item $\boldsymbol{h}$: the unknown linear system (acoustic path / impulse response) that the noise passes through from the noise source to the primary microphone. We model it as an FIR filter.
+    \item \textbf{primary microphone} signal $p_n=s_n+(h*v)_n$: the \emph{desired signal} $d_n$ of the adaptive filter. It contains the speech plus filtered noise.
+    \item $\boldsymbol{d}$: the \textbf{reference} (noise-only) microphone signal $v_n$, i.e.\ the \emph{input} $x_n$ of the adaptive filter. It is a measurement of the noise source before it passes through $h$.
+    \item $\boldsymbol{w}$: the \textbf{adaptive FIR filter}, which should approximate $h$.
+    \item $\boldsymbol{a}$: the \textbf{filter output} $\hat d_n=\sum_l w_l v_{n-l}$, an estimate of the noise component $(h*v)_n$ in the primary signal.
+    \item $\boldsymbol{b}$: the \textbf{error signal} $e_n=p_n-a_n$. It is also the \emph{output of the whole system}: the primary signal with the estimated noise removed, i.e.\ the estimate $\hat s_n$ of the speech.
+    \item $\boldsymbol{c}$: the \textbf{update of the filter coefficients}, computed by the adaptive algorithm from the error $e_n$ (and the reference regressor) and fed back to $w$.
+\end{itemize}
+
+\subsection*{2. Principle and the need for uncorrelated source and noise}
+The adaptive algorithm minimizes the power of the error $e_n=p_n-a_n$, with $n_n:=(h*v)_n$ denoting the noise at the primary microphone:
+\begin{equation}
+    \mathbb{E}[e_n^2]=\mathbb{E}\big[(s_n+n_n-a_n)^2\big]
+    =\mathbb{E}[s_n^2]+\mathbb{E}\big[(n_n-a_n)^2\big]+2\,\mathbb{E}\big[s_n(n_n-a_n)\big].
+\end{equation}
+The filter output $a_n$ is a linear combination of the reference $v_{n-l}$, so $n_n-a_n$ is a function of the noise reference only. If the speech is uncorrelated with the noise, the cross-term vanishes and
+\begin{equation}
+    \mathbb{E}[e_n^2]=\mathbb{E}[s_n^2]+\mathbb{E}\big[(n_n-a_n)^2\big].
+\end{equation}
+The speech power $\mathbb{E}[s_n^2]$ does not depend on $w$. Hence minimizing the output power is the same as minimizing the \emph{noise residual} $\mathbb{E}[(n_n-a_n)^2]$, which is minimized (equal to zero) for $w=h$, and then $e_n=s_n$. The system therefore needs no knowledge of $s_n$ or of $h$.
+
+If the speech is correlated with the reference (e.g.\ speech leaking into the reference microphone), the cross-term is non-zero, and the filter reduces the output power by also cancelling parts of the speech itself; the output is then a distorted speech signal. This is demonstrated numerically below.
+
+\subsection*{3. Experimental setup}
+The speech signal (\resSevenN{} samples, 8\,kHz) was scaled to a peak value of 0.5. The reference noise $v_n$ is white Gaussian noise. It is filtered through each of the three impulse responses (low-pass, high-pass, band-pass; lengths: \resSevenM), and its variance is chosen such that the noise at the primary microphone has the same power as the speech, i.e.\ an input SNR of $\resSevenSNRin$\,dB. This is a demanding case in which the benefit of the canceller is easy to assess both by the SNR and by listening. All adaptive filters have length $M=$ length of $h$ (the true model order, so exact cancellation is possible; a shorter filter would leave a residual and a longer one would add misadjustment noise). The adaptive filters are
+\begin{align}
+    \text{LMS:}\quad & w_{n+1}=w_n+\mu\,e_n\boldsymbol{v}_n,\nonumber\\
+    \text{NLMS:}\quad & w_{n+1}=w_n+\frac{\tilde\mu}{\epsilon+\|\boldsymbol{v}_n\|^2}\,e_n\boldsymbol{v}_n,\nonumber\\
+    \text{RLS:}\quad & k_n=\frac{P_{n-1}\boldsymbol{v}_n}{\lambda+\boldsymbol{v}_n^\top P_{n-1}\boldsymbol{v}_n},\quad w_n=w_{n-1}+k_ne_n,\quad P_n=\lambda^{-1}\big(P_{n-1}-k_n\boldsymbol{v}_n^\top P_{n-1}\big),\nonumber
+\end{align}
+with $\boldsymbol{v}_n=[v_n,\dots,v_{n-M+1}]^\top$ and $e_n=p_n-w^\top\boldsymbol{v}_n$ (a priori error). The step size of LMS must satisfy $0<\mu<2/\lambda_{\max}(\Sigma_v)$ for convergence in the mean ($\lambda_{\max}\le\operatorname{tr}\Sigma_v=M\sigma_v^2$, so $\mu<2/(M\sigma_v^2)$ is a safe bound); NLMS removes the dependence on the input power, with $0<\tilde\mu<2$; RLS uses a forgetting factor $\lambda\in(0,1]$ and $P_0=\delta^{-1}I$ with a small $\delta$. The step size, $\tilde\mu$ and $\lambda$ were selected from a grid by the output SNR in the last half of the signal (Fig.~\ref{fig:p27sweep}).
+
+\begin{figure}[h]
+    \centering
+    \myfig{figs/p27_sweep.pdf}{\textwidth}
+    \caption{Output SNR as a function of the algorithm parameter (shown for the first noise path).}
+    \label{fig:p27sweep}
+\end{figure}
+
+\subsection*{4. Results}
+The performance is measured by the output SNR, $10\log_{10}\sum s_n^2/\sum (e_n-s_n)^2$, over the last half of the signal (after convergence), and by the misalignment $10\log_{10}\|w-h\|^2/\|h\|^2$ of the final filter.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{llcccc}
+        \toprule
+        Noise path & Algorithm & Parameter & SNR in [dB] & SNR out [dB] & Misalignment [dB] \\
+        \midrule
+        \resSevenRows
+        \bottomrule
+    \end{tabular}
+    \caption{Performance of the adaptive noise cancellers (parameter: $\mu$ for LMS, $\tilde\mu$ for NLMS, $\lambda$ for RLS).}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \myfig{figs/p27_learning.pdf}{\textwidth}
+    \caption{Learning curves: smoothed power of the noise at the primary microphone and of the residual noise $e_n-s_n$ for the three algorithms.}
+    \label{fig:p27learn}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \myfig{figs/p27_filters.pdf}{\textwidth}
+    \caption{Frequency response of the true noise path and of the estimated adaptive filters.}
+    \label{fig:p27filt}
+\end{figure}
+
+\subsection*{5. Discussion}
+\begin{itemize}
+    \item \textbf{Convergence speed.} RLS whitens the input through $P_n\approx\Sigma_v^{-1}/n$ and converges in the order of $M$ to $2M$ samples independently of the eigenvalue spread, at the cost of $O(M^2)$ operations per sample. LMS and NLMS cost $O(M)$ and converge more slowly (Fig.~\ref{fig:p27learn}); LMS depends on the input power through $\mu$, which NLMS removes by normalization, so NLMS is easier to tune (Fig.~\ref{fig:p27sweep}).
+    \item \textbf{Steady state.} The choice of $\mu$ ($\tilde\mu$, $\lambda$) is a trade-off: a large step size gives fast convergence and tracking but a large excess error (misadjustment, here also caused by the speech acting as measurement noise in the error), a small step size gives low misadjustment but slow convergence. This is the optimum seen in the parameter sweep. With $\lambda=1$ RLS has the lowest misadjustment for a stationary path; $\lambda<1$ is required if $h$ changes in time.
+    \item \textbf{Filter estimates.} Fig.~\ref{fig:p27filt} compares the estimated filters with the true response. The filters can only be identified in frequency regions where the reference has power; since the reference is white, the entire band is excited for all three paths, and the misalignment in the table quantifies the remaining error.
+    \item \textbf{Speech leakage into the reference.} Adding a fraction $\alpha$ of the (power-normalized) speech to the reference signal and using NLMS ($\tilde\mu=0.5$) with the band-pass noise path gives the output SNRs in Table~\ref{tab:leak}. The performance degrades as $\alpha$ grows, since the filter learns to cancel part of the speech, confirming why the source and noise must be uncorrelated.
+\end{itemize}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{cc}
+        \toprule
+        $\alpha$ & SNR out [dB] \\
+        \midrule
+        \resLeakRows
+        \bottomrule
+    \end{tabular}
+    \caption{NLMS output SNR when a fraction $\alpha$ of the speech leaks into the reference microphone.}
+    \label{tab:leak}
+\end{table}
+
+For subjective evaluation, the noisy and the cleaned signals are saved as audio files (\texttt{audio/noisy\_*.wav}, \texttt{audio/clean\_*\_*.wav}) by the script in the appendix. Comparing them by ear complements the SNR figures in the table above.
+
+\clearpage
+\appendix
+\section*{Appendix: Python code for Problems 2.5--2.7}
+\lstinputlisting[language=Python,basicstyle=\ttfamily\scriptsize,breaklines=true,numbers=left,numberstyle=\tiny]{solutions.py}
+
+
+\end{document}
