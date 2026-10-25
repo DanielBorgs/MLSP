@@ -191,7 +191,7 @@ which passes frequencies where the signal dominates and attenuates those where t
 
 The filter must be long enough to resolve the spectral structure of $S_s/(S_s+S_w)$ since a longer filter has a finer frequency resolution and approximates the ideal response better, meaning the MSE decreases with $L$. However, $\Sigma_x$ and $p$ are estimated from a finite number of samples, and the number of parameters grows with $L$. Estimating the filter on the first half of the data and measuring the MSE on the second half gives a chosen length of $L=\resWienerL$ (Figure \ref{fig:p25mse}). 
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \myfig{figs/p25_mse_vs_L.pdf}{0.55\textwidth}
     \caption{MSE as a function of the filter length $L$, on the data used for the estimation and on held-out data.}
@@ -200,7 +200,7 @@ The filter must be long enough to resolve the spectral structure of $S_s/(S_s+S_
 
 Using all samples to estimate the filter, the signal-to-noise ratio is improved from \resWienerSNRin\,dB at the input to \resWienerSNRout\,dB at the output, a gain of \resWienerGain\,dB. Figure \ref{fig:p25freq} shows the frequency response of the Wiener filter together with the ideal response. The filter approximates the ideal response with a gain close to 0 dB where the signal spectrum lies above the noise spectrum, and strong attenuation where the noise dominates.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \myfig{figs/p25_freq.pdf}{\textwidth}
     \caption{Left: spectra of the signal, noise, input and filter output. Right: frequency response of the FIR Wiener filter and the ideal response.}
@@ -212,7 +212,7 @@ The signal is sampled at $f_s=\resSixFs$ Hz and lasts \resSixDur\,s. The short-t
 
 The beats were found as peaks of the spectral flux (Figure \ref{fig:p26spec}), detecting \resSixNons{} beats with a median time between consecutive beats of \resSixIOI\,s, corresponding to a tempo of about \resSixBPM{} beats per minute. The 87.5\% overlap gives a time resolution of \resSixHopMs\,ms in the localization of the beats. 
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \myfig{figs/p26_spectrogram.pdf}{\textwidth}
     \caption{Spectrogram (Hann window, 1024 samples, 87.5\,\% overlap) with detected beats and the spectral-flux onset function.}
@@ -221,14 +221,14 @@ The beats were found as peaks of the spectral flux (Figure \ref{fig:p26spec}), d
 
 The beats were grouped into three classes using $k$-means (Figure \ref{fig:p26sig}). The three instruments are distinguished by where their energy is located (Table \ref{tab:instruments}): the class with the lowest centroid corresponds to a bass-drum type sound, the middle class to a snare type sound, and the class with the highest centroid to a hi-hat type sound.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \myfig{figs/p26_signatures.pdf}{0.55\textwidth}
     \caption{Mean spectrum of the beats in each class.}
     \label{fig:p26sig}
 \end{figure}
 
-\begin{table}[h]
+\begin{table}[H]
     \centering
     \begin{tabular}{lccc}
         \toprule
@@ -253,7 +253,7 @@ If the speech is uncorrelated with the noise, the cross-term vanishes and $\math
 
 The speech signal was scaled to a peak value of 0.5, and the reference noise $v_n$ is white Gaussian noise filtered through low-pass, high-pass, and band-pass impulse responses. The adaptive filters are LMS, NLMS, and RLS. RLS converges in the order of $M$ to $2M$ samples independently of the eigenvalue spread but at the cost of $O(M^2)$ operations per sample. LMS and NLMS cost $O(M)$ and converge more slowly, while NLMS removes the dependence on the input power through normalization so it is easier to tune (Figure \ref{fig:p27learn}). 
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \myfig{figs/p27_learning.pdf}{\textwidth}
     \caption{Learning curves: smoothed power of the noise at the primary microphone and of the residual noise for the three algorithms.}
@@ -262,7 +262,7 @@ The speech signal was scaled to a peak value of 0.5, and the reference noise $v_
 
 A large step size gives fast convergence and tracking but a large excess error, while a small step size gives low misadjustment but slow convergence (Table \ref{tab:performance} and Figure \ref{fig:p27filt}).
 
-\begin{table}[h]
+\begin{table}[H]
     \centering
     \begin{tabular}{llcccc}
         \toprule
@@ -275,7 +275,7 @@ A large step size gives fast convergence and tracking but a large excess error, 
     \label{tab:performance}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \myfig{figs/p27_filters.pdf}{\textwidth}
     \caption{Frequency response of the true noise path and of the estimated adaptive filters.}
@@ -284,7 +284,7 @@ A large step size gives fast convergence and tracking but a large excess error, 
 
 Adding a fraction of the speech to the reference signal causes the performance to degrade because the filter learns to cancel part of the speech (Table \ref{tab:leak}), confirming why the source and noise must be uncorrelated.
 
-\begin{table}[h]
+\begin{table}[H]
     \centering
     \begin{tabular}{cc}
         \toprule
@@ -296,4 +296,10 @@ Adding a fraction of the speech to the reference signal causes the performance t
     \caption{NLMS output SNR when a fraction $\alpha$ of the speech leaks into the reference microphone.}
     \label{tab:leak}
 \end{table}
+
+\clearpage
+\appendix
+\section*{Appendix: Python code for Problems 2.5--2.7}
+\lstinputlisting[language=Python,basicstyle=\ttfamily\scriptsize,breaklines=true,numbers=left,numberstyle=\tiny]{solutions.py}
+
 \end{document}
