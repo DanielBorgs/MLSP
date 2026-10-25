@@ -25,8 +25,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-DATA = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data")
-OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(".")
+BASE = Path(__file__).resolve().parent
+DATA = Path(sys.argv[1]) if len(sys.argv) > 1 else BASE / "data"
+OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else BASE
 FIGS, AUDIO = OUT / "figs", OUT / "audio"
 FIGS.mkdir(parents=True, exist_ok=True)
 AUDIO.mkdir(parents=True, exist_ok=True)
@@ -103,13 +104,15 @@ def problem_2_5():
                    (Px, "$x_n=s_n+w_n$"), (Pe, r"$\hat s_n$ (filter output)")]:
         ax[0].plot(f, db(P), label=lab)
     ax[0].set_xlabel("frequency [Hz]"); ax[0].set_ylabel("PSD [dB/Hz]")
-    ax[0].legend(fontsize=8); ax[0].grid(alpha=.3)
+    ax[0].legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.18), ncol=2)
+    ax[0].grid(alpha=.3)
     ax[1].plot(fh, db(np.abs(H) ** 2 + 1e-12), label=f"FIR Wiener, $L={L_opt}$")
     ax[1].plot(f, db(Ps / (Ps + Pw)), "--", label=r"ideal non-causal $S_s/(S_s+S_w)$")
     ax[1].set_ylim(-60, 5)
     ax[1].set_xlabel("frequency [Hz]"); ax[1].set_ylabel(r"$|H(f)|^2$ [dB]")
-    ax[1].legend(fontsize=8); ax[1].grid(alpha=.3)
-    fig.tight_layout(); fig.savefig(FIGS / "p25_freq.pdf")
+    ax[1].legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.18), ncol=1)
+    ax[1].grid(alpha=.3)
+    fig.tight_layout(); fig.savefig(FIGS / "p25_freq.pdf", bbox_inches="tight")
 
     macro("resWienerL", L_opt)
     macro("resWienerSNRin", f"{snr_in:.1f}")
@@ -170,7 +173,7 @@ def problem_2_6():
     for r in range(K):
         ax[0].plot(onsets[lab == r], np.full((lab == r).sum(), f[-1] / 1e3 * .97), "v",
                    color=cols[r], ms=5, label=f"{names[r]} instrument")
-    ax[0].set_ylabel("frequency [kHz]"); ax[0].legend(loc="upper right", fontsize=7, ncol=3)
+    ax[0].set_ylabel("frequency [kHz]"); ax[0].legend(loc="lower left", bbox_to_anchor=(0, 1.01), fontsize=8, ncol=3, frameon=False)
     fig.colorbar(im, ax=ax, label="dB", pad=0.01)
     ax[1].plot(t[1:], flux, lw=.7); ax[1].plot(onsets, flux[pk], "kx")
     ax[1].set_xlabel("time [s]"); ax[1].set_ylabel("spectral flux")
